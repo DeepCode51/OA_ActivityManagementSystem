@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jee="http://www.springframework.org/schema/jee"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd">
+
+
+	<!-- 配置数据源的bean -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="com.mysql.jdbc.Driver" />
+		<property name="jdbcUrl" value="jdbc:mysql://localhost:3306/graduation_oa?characterEncoding=utf-8" />
+		<property name="user" value="root" />
+		<property name="password" value="123456" />
+	</bean>
+	<!-- 配置Hibernate SessionFactory -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="packagesToScan">
+			<list>
+				<value>org.crazyit.activiti.oa.entity</value>
+			</list>
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQL5InnoDBDialect</prop>
+			</props>
+		</property>
+	</bean>
+	<!-- 配置事务管理 -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	<!-- 事务拦截器 -->
+	<bean id="transactionInterceptor"
+		class="org.springframework.transaction.interceptor.TransactionInterceptor">
+		<property name="transactionManager" ref="transactionManager" />
+		<!-- 定义事务属性 -->
+		<property name="transactionAttributes">
+			<props>
+				<prop key="add*">PROPAGATION_REQUIRED</prop>
+				<prop key="create*">PROPAGATION_REQUIRED</prop>
+				<prop key="update*">PROPAGATION_REQUIRED</prop>
+				<prop key="insert*">PROPAGATION_REQUIRED</prop>
+			</props>
+		</property>
+	</bean>
+	<!-- 配置一个 BeanNameAutoProxyCreator, 实现根据bean名称自动创建事务代理 -->
+	<bean
+		class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+		<property name="beanNames">
+			<list>
+				<value>*Service</value>
+			</list>
+		</property>
+		<property name="interceptorNames">
+			<list>
+				<value>transactionInterceptor</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- Activiti的bean -->
+	<!-- 流程引擎的配置bean -->
+	<bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
+		<property name="dataSource" ref="dataSource" />
+		<property name="databaseSchemaUpdate" value="true"/>
+		<property name="transactionManager" ref="transactionManager" />
+	</bean>
+	<!-- 流程引擎的bean -->
+	<bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+		<property name="processEngineConfiguration" ref="processEngineConfiguration" />
+	</bean>
+	<!-- 服务组件的bean -->
+	<bean id="repositoryService" factory-bean="processEngine"
+		factory-method="getRepositoryService" />
+	<bean id="runtimeService" factory-bean="processEngine"
+		factory-method="getRuntimeService" />
+	<bean id="taskService" factory-bean="processEngine"
+		factory-method="getTaskService" />
+	<bean id="historyService" factory-bean="processEngine"
+		factory-method="getHistoryService" />
+	<bean id="identityService" factory-bean="processEngine"
+		factory-method="getIdentityService" />
+	<bean id="managementService" factory-bean="processEngine"
+		factory-method="getManagementService" />
+
+
+	<!-- 用户组 -->
+	<bean id="groupService" class="org.crazyit.activiti.oa.service.impl.GroupServiceImpl" autowire="byName"></bean>
+	<bean id="groupAction" class="org.crazyit.activiti.oa.action.GroupAction" autowire="byName" scope="prototype"></bean>
+	
+	<!-- 用户 -->
+	<bean id="userService" class="org.crazyit.activiti.oa.service.impl.UserServiceImpl" autowire="byName"></bean>
+	<bean id="userAction" class="org.crazyit.activiti.oa.action.UserAction" autowire="byName" scope="prototype"></bean>
+
+	<!-- 流程服务 -->
+	<bean id="processService" class="org.crazyit.activiti.oa.service.impl.ProcessServiceImpl" autowire="byName"></bean>
+	<bean id="processAction" class="org.crazyit.activiti.oa.action.ProcessAction" autowire="byName" scope="prototype"></bean>
+	
+	<!-- 流程定义 -->
+	<bean id="processDefinitionService" class="org.crazyit.activiti.oa.service.impl.ProcessDefinitionServiceImpl" autowire="byName"></bean>
+	<bean id="processDefinitionAction" class="org.crazyit.activiti.oa.action.ProcessDefinitionAction"
+	autowire="byName" scope="prototype"></bean>
+	
+	<!-- 请假 DAO -->
+	<bean id="applicationDao" class="org.crazyit.activiti.oa.dao.impl.ApplicationDaoImpl" autowire="byName"></bean>
+	
+</beans>
